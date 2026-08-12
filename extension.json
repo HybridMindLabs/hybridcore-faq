@@ -1,0 +1,20 @@
+{
+  "id": "hybridcore/faq",
+  "name": "FAQ",
+  "version": "1.0.0",
+  "description": "Admin-managed frequently-asked-questions page: categorized question/answer entries, searchable, with admin-visible helpful/not-helpful feedback.",
+  "author": "HybridMind Labs",
+  "type": "official",
+  "provider": "Hybridcore\\Faq\\FaqServiceProvider",
+  "routes": {
+    "web": "routes/web.php",
+    "admin": "routes/admin.php"
+  },
+  "migrations": "database/migrations",
+  "lang": "resources/lang",
+  "lang_namespace": "faq",
+  "update_url": "https://api.github.com/repos/HybridMindLabs/hybridcore-faq/releases/latest",
+  "requires": {
+    "core": ">=0.3.0"
+  }
+}

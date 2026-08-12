@@ -1,0 +1,45 @@
+{
+    "name": "hybridmindlabs/hybridcore-faq",
+    "description": "Official FAQ extension for HybridCore — admin-managed, categorized frequently-asked-questions page with search and helpful/not-helpful feedback.",
+    "type": "hybridcore-extension",
+    "license": "proprietary",
+    "homepage": "https://github.com/HybridMindLabs/hybridcore-faq",
+    "authors": [
+        {
+            "name": "HybridMind Labs",
+            "homepage": "https://github.com/HybridMindLabs"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/HybridMindLabs/hybridcore-faq/issues",
+        "source": "https://github.com/HybridMindLabs/hybridcore-faq"
+    },
+    "keywords": [
+        "hybridcore",
+        "hybridcore-extension",
+        "faq",
+        "help",
+        "support"
+    ],
+    "require": {
+        "php": "^8.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hybridcore\\Faq\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hybridcore\\Faq\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "hybridcore": {
+            "id": "hybridcore/faq"
+        }
+    }
+}

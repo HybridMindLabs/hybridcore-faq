@@ -8,15 +8,23 @@ return [
 
     // Public page
     'title' => 'Често задавани въпроси',
-    'subtitle' => 'Бързи отговори на въпросите, които получаваме най-често.',
+    'subtitle_count' => ':count отговора, групирани по теми — търси или скочи до категория.',
+    'search_label' => 'Търси в ЧЗВ',
     'search_placeholder' => 'Търси във въпроси и отговори…',
     'no_entries' => 'Все още няма въпроси тук.',
     'no_results' => 'Няма въпроси, отговарящи на търсенето.',
-    'copy_link' => 'Копирай линк към този въпрос',
+    'popular_title' => 'Популярни',
+    'popular_subtitle' => 'Отговори, които други играчи са отбелязали като полезни.',
+    'copy_link' => 'Копирай линк',
+    'link_copied' => 'Линкът е копиран',
     'feedback_question' => 'Полезно ли беше?',
     'feedback_yes' => 'Да',
     'feedback_no' => 'Не',
     'feedback_thanks' => 'Благодарим за обратната връзка!',
+
+    // SEO
+    'meta_description' => 'Намери бързи отговори на :count често задавани въпроса.',
+    'meta_description_categorized' => 'Намери бързи отговори на :count често задавани въпроса за :categories.',
 
     // Admin
     'admin_title' => 'ЧЗВ',

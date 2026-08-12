@@ -71,12 +71,21 @@ class FaqServiceProvider extends ServiceProvider
             }
 
             return [
+                // helpful_count > 0 — an unvoted entry isn't "popular", it's
+                // arbitrary. An empty widget (hidden client-side) is more
+                // honest than mislabeling one.
                 'entries' => FaqEntry::where('is_published', true)
+                    ->where('helpful_count', '>', 0)
                     ->orderByDesc('helpful_count')
                     ->orderBy('sort')
                     ->limit(4)
-                    ->get(['id', 'question'])
-                    ->map(fn (FaqEntry $e) => ['id' => $e->id, 'question' => $e->question])
+                    ->get(['id', 'category', 'question', 'helpful_count'])
+                    ->map(fn (FaqEntry $e) => [
+                        'id' => $e->id,
+                        'category' => $e->category ?: trans('faq::messages.uncategorized'),
+                        'question' => $e->question,
+                        'helpful_count' => $e->helpful_count,
+                    ])
                     ->all(),
             ];
         } catch (\Throwable) {

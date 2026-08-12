@@ -8,15 +8,23 @@ return [
 
     // Public page
     'title' => 'Frequently asked questions',
-    'subtitle' => 'Quick answers to the questions we get most.',
+    'subtitle_count' => ':count answers, grouped by topic — search or jump to a category.',
+    'search_label' => 'Search the FAQ',
     'search_placeholder' => 'Search questions and answers…',
     'no_entries' => 'No questions here yet.',
     'no_results' => 'No questions match your search.',
-    'copy_link' => 'Copy link to this question',
+    'popular_title' => 'Popular',
+    'popular_subtitle' => 'Answers other players marked most helpful.',
+    'copy_link' => 'Copy link',
+    'link_copied' => 'Link copied',
     'feedback_question' => 'Was this helpful?',
     'feedback_yes' => 'Yes',
     'feedback_no' => 'No',
     'feedback_thanks' => 'Thanks for the feedback!',
+
+    // SEO
+    'meta_description' => 'Find quick answers to :count frequently asked questions.',
+    'meta_description_categorized' => 'Find quick answers to :count frequently asked questions about :categories.',
 
     // Admin
     'admin_title' => 'FAQ',

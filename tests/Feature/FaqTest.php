@@ -83,6 +83,21 @@ class FaqTest extends TestCase
         $this->assertFalse($questions->contains('Draft question'));
     }
 
+    public function test_popular_only_includes_entries_with_at_least_one_helpful_vote(): void
+    {
+        // helpful_count isn't mass-assignable — force it directly.
+        FaqEntry::create(['question' => 'Voted', 'answer' => 'A'])->forceFill(['helpful_count' => 5])->save();
+        FaqEntry::create(['question' => 'Never voted', 'answer' => 'A']);
+
+        request()->headers->set('X-Inertia', 'true');
+        $response = app(FaqController::class)->index(app(MarkdownRenderer::class));
+        $data = $response->toResponse(request())->getData(true)['props'];
+
+        $this->assertCount(1, $data['popular']);
+        $this->assertSame('Voted', $data['popular'][0]['question']);
+        $this->assertStringContainsString('2', $data['metaDescription']); // entry count
+    }
+
     public function test_feedback_on_an_unpublished_entry_is_not_found(): void
     {
         $entry = FaqEntry::create(['question' => 'Q', 'answer' => 'A', 'is_published' => false]);

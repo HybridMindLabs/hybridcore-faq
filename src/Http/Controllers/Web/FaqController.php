@@ -4,6 +4,7 @@ namespace Hybridcore\Faq\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use Hybridcore\Faq\Models\FaqEntry;
+use Hybridcore\Faq\Models\FaqSearchMiss;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -59,9 +60,31 @@ class FaqController extends Controller
     {
         abort_unless($entry->is_published, 404);
 
-        $data = $request->validate(['helpful' => ['required', 'boolean']]);
+        $data = $request->validate([
+            'helpful' => ['required', 'boolean'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
 
         $entry->increment($data['helpful'] ? 'helpful_count' : 'not_helpful_count');
+
+        if (! $data['helpful'] && filled($data['reason'] ?? null)) {
+            $entry->feedbackNotes()->create(['body' => $data['reason']]);
+        }
+
+        return back();
+    }
+
+    /** Logs a search term that matched nothing, so admins can see what the FAQ is missing. */
+    public function searchMiss(Request $request): RedirectResponse
+    {
+        $term = mb_strtolower(trim((string) $request->string('term')));
+
+        if (mb_strlen($term) >= 2) {
+            $miss = FaqSearchMiss::firstOrNew(['term' => $term]);
+            $miss->hits = ($miss->hits ?? 0) + 1;
+            $miss->last_searched_at = now();
+            $miss->save();
+        }
 
         return back();
     }

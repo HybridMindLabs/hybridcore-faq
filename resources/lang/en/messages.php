@@ -23,6 +23,9 @@ return [
     'feedback_yes' => 'Yes',
     'feedback_no' => 'No',
     'feedback_thanks' => 'Thanks for the feedback!',
+    'feedback_reason_placeholder' => "What's missing or unclear? (optional)",
+    'feedback_send' => 'Send',
+    'feedback_skip' => 'Skip',
     'related_title' => 'Related',
     'cta_title' => 'Still have a question?',
     'cta_subtitle' => "Didn't find what you were looking for? Reach out and we'll help.",
@@ -57,4 +60,8 @@ return [
     'bulk_delete' => 'Delete',
     'bulk_confirm_delete' => 'Delete :count question(s)? This cannot be undone.',
     'selected_count' => ':count selected',
+    'search_misses_title' => 'Searches with no answer',
+    'search_misses_subtitle' => 'Terms visitors searched that matched nothing — signals for what to add.',
+    'search_miss_hits' => ':count searches',
+    'notes_count' => ':count feedback notes',
 ];

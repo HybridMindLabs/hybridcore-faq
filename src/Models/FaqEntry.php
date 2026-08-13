@@ -4,6 +4,7 @@ namespace Hybridcore\Faq\Models;
 
 use App\Support\MarkdownRenderer;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -34,6 +35,11 @@ class FaqEntry extends Model
     protected function casts(): array
     {
         return ['is_published' => 'boolean'];
+    }
+
+    public function feedbackNotes(): HasMany
+    {
+        return $this->hasMany(FaqFeedbackNote::class)->latest();
     }
 
     protected static function booted(): void

@@ -13,4 +13,5 @@ Route::middleware('perm:faq.manage')->group(function (): void {
     Route::put('/faq/{entry}', [FaqController::class, 'update'])->name('admin.faq.update');
     Route::delete('/faq/{entry}', [FaqController::class, 'destroy'])->name('admin.faq.destroy');
     Route::post('/faq/bulk', [FaqController::class, 'bulk'])->name('admin.faq.bulk');
+    Route::delete('/faq/search-misses/{miss}', [FaqController::class, 'dismissSearchMiss'])->name('admin.faq.search-misses.destroy');
 });

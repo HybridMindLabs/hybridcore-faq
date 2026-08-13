@@ -23,6 +23,9 @@ return [
     'feedback_yes' => 'Да',
     'feedback_no' => 'Не',
     'feedback_thanks' => 'Благодарим за обратната връзка!',
+    'feedback_reason_placeholder' => 'Какво липсва или не е ясно? (по избор)',
+    'feedback_send' => 'Изпрати',
+    'feedback_skip' => 'Пропусни',
     'related_title' => 'Свързани',
     'cta_title' => 'Все още имаш въпрос?',
     'cta_subtitle' => 'Не намери каквото търсеше? Свържи се с нас и ще помогнем.',
@@ -57,4 +60,8 @@ return [
     'bulk_delete' => 'Изтрий',
     'bulk_confirm_delete' => 'Изтрий :count въпрос(а)? Не може да се отмени.',
     'selected_count' => ':count избрани',
+    'search_misses_title' => 'Търсения без отговор',
+    'search_misses_subtitle' => 'Термини, търсени от посетители, без съвпадение — сигнал какво да добавиш.',
+    'search_miss_hits' => ':count търсения',
+    'notes_count' => ':count бележки от обратна връзка',
 ];

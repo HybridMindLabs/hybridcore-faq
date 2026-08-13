@@ -4,6 +4,7 @@ namespace Hybridcore\Faq\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Hybridcore\Faq\Models\FaqEntry;
+use Hybridcore\Faq\Models\FaqSearchMiss;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,7 +15,8 @@ class FaqController extends Controller
 {
     public function index(): Response
     {
-        $entries = FaqEntry::orderBy('category')
+        $entries = FaqEntry::with('feedbackNotes:id,faq_entry_id,body,created_at')
+            ->orderBy('category')
             ->orderBy('sort')
             ->orderBy('id')
             ->get();
@@ -26,6 +28,7 @@ class FaqController extends Controller
         return Inertia::render('Extensions/hybridcore/faq/Admin/Index', [
             'groups' => $groups,
             'categories' => $entries->pluck('category')->filter()->unique()->sort()->values(),
+            'searchMisses' => FaqSearchMiss::orderByDesc('hits')->limit(10)->get(['id', 'term', 'hits', 'last_searched_at']),
         ]);
     }
 
@@ -78,6 +81,13 @@ class FaqController extends Controller
         };
 
         return back()->with('success', trans('faq::messages.bulk_done', ['count' => count($data['ids'])]));
+    }
+
+    public function dismissSearchMiss(FaqSearchMiss $miss): RedirectResponse
+    {
+        $miss->delete();
+
+        return back();
     }
 
     /** @return array<string, mixed> */

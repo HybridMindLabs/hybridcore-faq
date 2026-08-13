@@ -4,7 +4,7 @@ import {
     CircleHelp, Search, ChevronDown, ThumbsUp, ThumbsDown, Check, Link2, Flame,
     UserCircle, Server, CreditCard, ShieldCheck, Gift, Trophy, MessageCircle,
 } from '@lucide/vue';
-import { computed, nextTick, onMounted, onUnmounted, ref, type Component } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import Breadcrumb from '@/components/UI/Breadcrumb.vue';
 import SocialLinks from '@/components/UI/SocialLinks.vue';
@@ -110,12 +110,45 @@ function saveVoted() {
     }
 }
 
+// A "No" vote first opens an optional reason box instead of submitting right
+// away — Send attaches the text, Skip (or submitVote directly for "Yes")
+// submits without one.
+const reasonOpenFor = ref<number | null>(null);
+const reasonText = ref('');
+
 function vote(entry: Entry, helpful: boolean) {
     if (voted.value.has(entry.id)) return;
+    if (!helpful) {
+        reasonOpenFor.value = entry.id;
+        return;
+    }
+    submitVote(entry, true);
+}
+function submitReason(entry: Entry, send: boolean) {
+    submitVote(entry, false, send ? reasonText.value.trim() : undefined);
+}
+function submitVote(entry: Entry, helpful: boolean, reason?: string) {
     voted.value.add(entry.id);
     saveVoted();
-    router.post(route('faq.feedback', entry.id), { helpful }, { preserveScroll: true, preserveState: true });
+    reasonOpenFor.value = null;
+    reasonText.value = '';
+    router.post(route('faq.feedback', entry.id), { helpful, reason: reason || null }, { preserveScroll: true, preserveState: true });
 }
+
+// Debounced: logs a search term only once results settle on empty, not on
+// every keystroke while still typing toward a match.
+let missTimer: ReturnType<typeof setTimeout> | null = null;
+watch(query, (q) => {
+    if (missTimer) clearTimeout(missTimer);
+    const term = q.trim();
+    if (term.length < 2) return;
+
+    missTimer = setTimeout(() => {
+        if (query.value.trim() === term && !filteredGroups.value.length) {
+            router.post(route('faq.search-miss'), { term }, { preserveScroll: true, preserveState: true });
+        }
+    }, 900);
+});
 
 async function copyLink(entry: Entry) {
     const url = `${window.location.origin}${window.location.pathname}#faq-${entry.slug}`;
@@ -329,32 +362,43 @@ onUnmounted(() => {
                                             : 'text-zinc-600 [&_strong]:text-zinc-900 [&_a]:text-blue-600 [&_code]:bg-zinc-100 [&_code]:text-zinc-700'"
                                         v-html="entry.answer_html" />
 
-                                    <div class="flex items-center gap-4 mt-4 pt-4 border-t flex-wrap" :class="dark ? 'border-zinc-800/50' : 'border-zinc-100'">
-                                        <div class="flex items-center gap-3">
-                                            <span v-if="voted.has(entry.id)" class="flex items-center gap-1.5 text-[12px] text-emerald-400">
-                                                <Check :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_thanks') }}
-                                            </span>
-                                            <template v-else>
-                                                <span class="text-[12px]" :class="textMute">{{ t('ext.faq.feedback_question') }}</span>
-                                                <button type="button" class="flex items-center gap-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
-                                                    :class="dark ? 'text-zinc-400 hover:text-emerald-400' : 'text-zinc-500 hover:text-emerald-600'"
-                                                    @click="vote(entry, true)">
-                                                    <ThumbsUp :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_yes') }}
-                                                </button>
-                                                <button type="button" class="flex items-center gap-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
-                                                    :class="dark ? 'text-zinc-400 hover:text-red-400' : 'text-zinc-500 hover:text-red-500'"
-                                                    @click="vote(entry, false)">
-                                                    <ThumbsDown :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_no') }}
-                                                </button>
-                                            </template>
+                                    <div class="mt-4 pt-4 border-t" :class="dark ? 'border-zinc-800/50' : 'border-zinc-100'">
+                                        <div class="flex items-center gap-4 flex-wrap">
+                                            <div class="flex items-center gap-3">
+                                                <span v-if="voted.has(entry.id)" class="flex items-center gap-1.5 text-[12px] text-emerald-400">
+                                                    <Check :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_thanks') }}
+                                                </span>
+                                                <template v-else-if="reasonOpenFor !== entry.id">
+                                                    <span class="text-[12px]" :class="textMute">{{ t('ext.faq.feedback_question') }}</span>
+                                                    <button type="button" class="flex items-center gap-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
+                                                        :class="dark ? 'text-zinc-400 hover:text-emerald-400' : 'text-zinc-500 hover:text-emerald-600'"
+                                                        @click="vote(entry, true)">
+                                                        <ThumbsUp :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_yes') }}
+                                                    </button>
+                                                    <button type="button" class="flex items-center gap-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
+                                                        :class="dark ? 'text-zinc-400 hover:text-red-400' : 'text-zinc-500 hover:text-red-500'"
+                                                        @click="vote(entry, false)">
+                                                        <ThumbsDown :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_no') }}
+                                                    </button>
+                                                </template>
+                                            </div>
+                                            <button v-if="!voted.has(entry.id) && reasonOpenFor !== entry.id" type="button" class="ml-auto flex items-center gap-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
+                                                :class="dark ? 'text-zinc-600 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'"
+                                                @click="copyLink(entry)">
+                                                <Check v-if="copiedId === entry.id" :size="12" :stroke-width="2" class="text-emerald-400" />
+                                                <Link2 v-else :size="12" :stroke-width="2" />
+                                                {{ copiedId === entry.id ? t('ext.faq.link_copied') : t('ext.faq.copy_link') }}
+                                            </button>
                                         </div>
-                                        <button type="button" class="ml-auto flex items-center gap-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
-                                            :class="dark ? 'text-zinc-600 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'"
-                                            @click="copyLink(entry)">
-                                            <Check v-if="copiedId === entry.id" :size="12" :stroke-width="2" class="text-emerald-400" />
-                                            <Link2 v-else :size="12" :stroke-width="2" />
-                                            {{ copiedId === entry.id ? t('ext.faq.link_copied') : t('ext.faq.copy_link') }}
-                                        </button>
+
+                                        <div v-if="reasonOpenFor === entry.id" class="mt-2.5 flex items-center gap-2">
+                                            <input v-model="reasonText" type="text" :placeholder="t('ext.faq.feedback_reason_placeholder')" maxlength="500"
+                                                class="flex-1 px-3 py-1.5 rounded-lg border text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                                                :class="[panel, dark ? 'text-zinc-200 placeholder:text-zinc-600' : 'text-zinc-900 placeholder:text-zinc-400']"
+                                                @keydown.enter="submitReason(entry, true)" />
+                                            <button type="button" class="shrink-0 text-[12px] font-semibold text-blue-400 hover:text-blue-300 transition-colors" @click="submitReason(entry, true)">{{ t('ext.faq.feedback_send') }}</button>
+                                            <button type="button" class="shrink-0 text-[12px] font-medium" :class="textMute" @click="submitReason(entry, false)">{{ t('ext.faq.feedback_skip') }}</button>
+                                        </div>
                                     </div>
 
                                     <div v-if="relatedTo(group, entry).length" class="mt-4 pt-4 border-t flex flex-wrap items-center gap-2" :class="dark ? 'border-zinc-800/50' : 'border-zinc-100'">

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Admin list grouped by category with a filter box, instead of one flat list.
 - Search term highlighting in questions, category icons, related-questions under each answer, and a closing "Still have a question?" card that reuses the site's configured social links.
 - Admin bulk actions: publish/unpublish/delete across a selection.
+- Zero-result search tracking — terms visitors searched that matched nothing surface in a dismissible admin panel.
+- Optional free-text reason on a "Not helpful" vote, visible to admins per entry.
 
 ### Fixed
 - Mobile category nav sat behind the sticky site header instead of below it.

@@ -23,6 +23,9 @@ return [
     'feedback_yes' => 'Yes',
     'feedback_no' => 'No',
     'feedback_thanks' => 'Thanks for the feedback!',
+    'related_title' => 'Related',
+    'cta_title' => 'Still have a question?',
+    'cta_subtitle' => "Didn't find what you were looking for? Reach out and we'll help.",
 
     // SEO
     'meta_description' => 'Find quick answers to :count frequently asked questions.',

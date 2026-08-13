@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { CircleHelp, Search, ChevronDown, ThumbsUp, ThumbsDown, Check, Link2, Flame } from '@lucide/vue';
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import {
+    CircleHelp, Search, ChevronDown, ThumbsUp, ThumbsDown, Check, Link2, Flame,
+    UserCircle, Server, CreditCard, ShieldCheck, Gift, Trophy, MessageCircle,
+} from '@lucide/vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, type Component } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import Breadcrumb from '@/components/UI/Breadcrumb.vue';
+import SocialLinks from '@/components/UI/SocialLinks.vue';
 import { useTheme } from '@/composables/useTheme';
 import { useLocale } from '@/composables/useLocale';
 
@@ -29,6 +33,43 @@ function categoryHue(slug: string): string {
     let h = 0;
     for (let i = 0; i < slug.length; i++) h = (h + slug.charCodeAt(i)) % CATEGORY_HUES.length;
     return CATEGORY_HUES[h];
+}
+
+// Categories are free-text (admin-defined), so icons are picked by keyword
+// match against common category names rather than a fixed enum — anything
+// unmatched falls back to the generic help icon.
+const CATEGORY_ICONS: Array<[RegExp, Component]> = [
+    [/account|акаунт|потребител/i, UserCircle],
+    [/server|сървър/i, Server],
+    [/payment|donat|плащ|дарен/i, CreditCard],
+    [/rule|правил/i, ShieldCheck],
+    [/gift|подар/i, Gift],
+    [/reward|award|награ/i, Trophy],
+    [/discord|chat|чат/i, MessageCircle],
+];
+function categoryIcon(category: string): Component {
+    return CATEGORY_ICONS.find(([re]) => re.test(category))?.[1] ?? CircleHelp;
+}
+
+function escapeHtml(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+// Highlights the search term inside a question. Question text is always
+// plain (never markdown), so a straight escape-then-wrap is safe here —
+// deliberately not applied to answer_html, since regex-splicing into
+// already-rendered markdown risks breaking tags.
+function highlightQuestion(text: string): string {
+    const escaped = escapeHtml(text);
+    const q = query.value.trim();
+    if (!q) return escaped;
+
+    const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'ig');
+    return escaped.replace(re, '<mark class="bg-amber-400/40 text-inherit rounded-sm">$1</mark>');
+}
+
+/** Up to 3 sibling entries from the same category, to keep a reader in the FAQ instead of bouncing. */
+function relatedTo(group: Group, entry: Entry): Entry[] {
+    return group.entries.filter((e) => e.id !== entry.id).slice(0, 3);
 }
 
 const totalCount = computed(() => props.groups.reduce((sum, g) => sum + g.entries.length, 0));
@@ -213,6 +254,7 @@ onUnmounted(() => {
                     :class="activeSlug === g.slug
                         ? (dark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-600')
                         : (dark ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900' : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100')">
+                    <component :is="categoryIcon(g.category)" :size="12" :stroke-width="2.25" />
                     {{ g.category }} <span class="font-mono opacity-60">{{ g.entries.length }}</span>
                 </a>
             </div>
@@ -226,11 +268,12 @@ onUnmounted(() => {
                         <p class="px-2.5 pt-1.5 pb-2 text-[11px] font-bold uppercase tracking-wide" :class="textMute">{{ t('ext.faq.categories_title') }}</p>
                         <div class="space-y-0.5">
                             <a v-for="g in groups" :key="g.slug" :href="`#cat-${g.slug}`"
-                                class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                                class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
                                 :class="activeSlug === g.slug
                                     ? (dark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-600')
                                     : (dark ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100')">
-                                <span class="truncate">{{ g.category }}</span>
+                                <component :is="categoryIcon(g.category)" :size="14" :stroke-width="2" class="shrink-0 opacity-80" />
+                                <span class="truncate flex-1">{{ g.category }}</span>
                                 <span class="text-[11px] font-mono opacity-60 shrink-0">{{ g.entries.length }}</span>
                             </a>
                         </div>
@@ -268,6 +311,7 @@ onUnmounted(() => {
                     <section v-for="group in visibleGroups" :key="group.slug" :id="`cat-${group.slug}`" :data-slug="group.slug" data-faq-section
                         :aria-labelledby="`cat-${group.slug}-h`" class="mb-9 last:mb-0 scroll-mt-24">
                         <h2 :id="`cat-${group.slug}-h`" class="flex items-center gap-2 text-[15px] font-bold mb-3" :class="textPri">
+                            <component :is="categoryIcon(group.category)" :size="15" :stroke-width="2.25" class="opacity-70" />
                             {{ group.category }}
                             <span class="text-[11px] font-mono font-normal" :class="textMute">{{ group.entries.length }}</span>
                         </h2>
@@ -275,7 +319,7 @@ onUnmounted(() => {
                             <details v-for="entry in group.entries" :key="entry.id" :id="`faq-${entry.slug}`" class="group scroll-mt-24">
                                 <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-5 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-inset"
                                     :class="dark ? 'hover:bg-white/[0.02]' : 'hover:bg-zinc-50'">
-                                    <span class="flex-1 text-[14px] font-semibold" :class="textPri">{{ entry.question }}</span>
+                                    <span class="flex-1 text-[14px] font-semibold" :class="textPri" v-html="highlightQuestion(entry.question)" />
                                     <ChevronDown :size="16" :stroke-width="2" aria-hidden="true" class="shrink-0 transition-transform group-open:rotate-180" :class="textMute" />
                                 </summary>
                                 <div class="px-5 pb-5">
@@ -312,8 +356,28 @@ onUnmounted(() => {
                                             {{ copiedId === entry.id ? t('ext.faq.link_copied') : t('ext.faq.copy_link') }}
                                         </button>
                                     </div>
+
+                                    <div v-if="relatedTo(group, entry).length" class="mt-4 pt-4 border-t flex flex-wrap items-center gap-2" :class="dark ? 'border-zinc-800/50' : 'border-zinc-100'">
+                                        <span class="text-[11px] font-bold uppercase tracking-wide shrink-0" :class="textMute">{{ t('ext.faq.related_title') }}</span>
+                                        <a v-for="r in relatedTo(group, entry)" :key="r.id" :href="`#faq-${r.slug}`"
+                                            class="inline-flex items-center gap-1 text-[12px] font-semibold px-2.5 py-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                                            :class="dark ? 'bg-zinc-900 text-zinc-400 hover:text-zinc-200' : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'"
+                                            @click.prevent="openAndScroll(r.slug)">
+                                            {{ r.question }}
+                                        </a>
+                                    </div>
                                 </div>
                             </details>
+                        </div>
+                    </section>
+
+                    <!-- Closing CTA — for questions the FAQ doesn't cover -->
+                    <section v-if="totalCount && !query" class="hc-reveal rounded-xl border px-6 py-8 text-center" :class="panel">
+                        <MessageCircle :size="22" :stroke-width="1.75" class="mx-auto mb-3" :class="textMute" />
+                        <h2 class="text-[16px] font-bold mb-1.5" :class="textPri">{{ t('ext.faq.cta_title') }}</h2>
+                        <p class="text-[13px] mb-4 max-w-sm mx-auto" :class="textMute">{{ t('ext.faq.cta_subtitle') }}</p>
+                        <div class="flex justify-center">
+                            <SocialLinks variant="bar" />
                         </div>
                     </section>
                 </div>

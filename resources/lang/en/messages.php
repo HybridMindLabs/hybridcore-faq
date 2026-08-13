@@ -7,8 +7,10 @@ return [
     'widget_link' => 'View all questions',
 
     // Public page
+    'eyebrow' => 'Help center',
     'title' => 'Frequently asked questions',
     'subtitle_count' => ':count answers, grouped by topic — search or jump to a category.',
+    'categories_title' => 'Categories',
     'search_label' => 'Search the FAQ',
     'search_placeholder' => 'Search questions and answers…',
     'no_entries' => 'No questions here yet.',
@@ -37,7 +39,10 @@ return [
     'field_answer' => 'Answer (markdown)',
     'field_category' => 'Category',
     'field_category_placeholder' => 'e.g. Accounts, Servers, Donations',
+    'field_slug' => 'Link slug',
+    'field_slug_hint' => 'Used in the shareable link. Auto-filled from the question — edit it if you want something shorter.',
     'field_sort' => 'Sort',
+    'filter_placeholder' => 'Filter questions…',
     'field_published' => 'Published (visible on the public FAQ page)',
     'draft' => 'Draft',
     'created' => 'Question created.',

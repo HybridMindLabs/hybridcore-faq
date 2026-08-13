@@ -7,8 +7,10 @@ return [
     'widget_link' => 'Виж всички въпроси',
 
     // Public page
+    'eyebrow' => 'Помощен център',
     'title' => 'Често задавани въпроси',
     'subtitle_count' => ':count отговора, групирани по теми — търси или скочи до категория.',
+    'categories_title' => 'Категории',
     'search_label' => 'Търси в ЧЗВ',
     'search_placeholder' => 'Търси във въпроси и отговори…',
     'no_entries' => 'Все още няма въпроси тук.',
@@ -37,7 +39,10 @@ return [
     'field_answer' => 'Отговор (markdown)',
     'field_category' => 'Категория',
     'field_category_placeholder' => 'напр. Акаунти, Сървъри, Дарения',
+    'field_slug' => 'Slug на линка',
+    'field_slug_hint' => 'Използва се в линка за споделяне. Попълва се автоматично от въпроса — редактирай го за нещо по-кратко.',
     'field_sort' => 'Подредба',
+    'filter_placeholder' => 'Филтрирай въпроси…',
     'field_published' => 'Публикуван (видим на публичната ЧЗВ страница)',
     'draft' => 'Чернова',
     'created' => 'Въпросът е създаден.',

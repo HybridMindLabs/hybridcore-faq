@@ -27,6 +27,7 @@ class FaqController extends Controller
 
             return [
                 'id' => $e->id,
+                'slug' => $e->slug,
                 'category' => $e->category ?: trans('faq::messages.uncategorized'),
                 'question' => $e->question,
                 'answer_html' => $html,

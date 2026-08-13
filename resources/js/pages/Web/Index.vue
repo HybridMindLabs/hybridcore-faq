@@ -7,7 +7,7 @@ import Breadcrumb from '@/components/UI/Breadcrumb.vue';
 import { useTheme } from '@/composables/useTheme';
 import { useLocale } from '@/composables/useLocale';
 
-interface Entry { id: number; category: string; question: string; answer_html: string; answer_text: string }
+interface Entry { id: number; slug: string; category: string; question: string; answer_html: string; answer_text: string }
 interface Group { category: string; slug: string; entries: Entry[] }
 
 const props = defineProps<{ groups: Group[]; popular: Entry[]; metaDescription: string }>();
@@ -76,12 +76,12 @@ function vote(entry: Entry, helpful: boolean) {
     router.post(route('faq.feedback', entry.id), { helpful }, { preserveScroll: true, preserveState: true });
 }
 
-async function copyLink(id: number) {
-    const url = `${window.location.origin}${window.location.pathname}#faq-${id}`;
+async function copyLink(entry: Entry) {
+    const url = `${window.location.origin}${window.location.pathname}#faq-${entry.slug}`;
     try {
         await navigator.clipboard.writeText(url);
-        copiedId.value = id;
-        setTimeout(() => { if (copiedId.value === id) copiedId.value = null; }, 1500);
+        copiedId.value = entry.id;
+        setTimeout(() => { if (copiedId.value === entry.id) copiedId.value = null; }, 1500);
     } catch {
         // Clipboard API unavailable — the link is still visible/selectable
         // via the address bar once the entry is opened.
@@ -111,7 +111,7 @@ function openMatches() {
         for (const group of filteredGroups.value) {
             for (const entry of group.entries) {
                 if (!entry.question.toLowerCase().includes(q)) {
-                    const el = document.getElementById(`faq-${entry.id}`) as HTMLDetailsElement | null;
+                    const el = document.getElementById(`faq-${entry.slug}`) as HTMLDetailsElement | null;
                     if (el) el.open = true;
                 }
             }
@@ -119,16 +119,25 @@ function openMatches() {
     });
 }
 
-// ── Deep links: /faq#faq-123 or a Popular-question link opens + scrolls ──
-function openAndScroll(id: number) {
-    const el = document.getElementById(`faq-${id}`) as HTMLDetailsElement | null;
+// ── Deep links: /faq#faq-<slug> or a Popular-question link opens + scrolls ──
+function openAndScroll(slug: string) {
+    const el = document.getElementById(`faq-${slug}`) as HTMLDetailsElement | null;
     if (!el) return;
     el.open = true;
     nextTick(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 }
 function handleHash() {
-    const match = window.location.hash.match(/^#faq-(\d+)$/);
-    if (match) openAndScroll(Number(match[1]));
+    const match = window.location.hash.match(/^#faq-(.+)$/);
+    if (!match) return;
+
+    if (document.getElementById(`faq-${match[1]}`)) {
+        openAndScroll(match[1]);
+        return;
+    }
+
+    // Legacy links shared before the slug switch used the numeric id.
+    const legacy = props.groups.flatMap((g) => g.entries).find((e) => String(e.id) === match[1]);
+    if (legacy) openAndScroll(legacy.slug);
 }
 
 // ── Category scrollspy ──────────────────────────────────────────
@@ -164,29 +173,40 @@ onUnmounted(() => {
         <component :is="'script'" type="application/ld+json">{{ jsonLd }}</component>
     </Head>
     <PublicLayout>
-        <div class="border-b" :class="dark ? 'border-zinc-800/60 bg-[#09090b]' : 'border-zinc-200 bg-zinc-50'">
-            <div class="max-w-[1200px] mx-auto px-4 sm:px-6 pt-8 pb-6">
-                <Breadcrumb :items="[{ label: 'Home', href: '/' }, { label: t('ext.faq.title') }]" />
-                <div class="flex items-end justify-between gap-4 flex-wrap mt-4">
-                    <div>
-                        <h1 class="text-3xl font-black tracking-tight" :class="textPri">{{ t('ext.faq.title') }}</h1>
-                        <p class="mt-1.5 text-[14px]" :class="textMute">{{ t('ext.faq.subtitle_count', { count: totalCount }) }}</p>
+        <!-- Hero -->
+        <section class="relative overflow-hidden border-b" :class="dark ? 'border-zinc-800/60 bg-[#0a0a0c]' : 'border-zinc-200 bg-gradient-to-b from-zinc-50 to-white'">
+            <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                <div class="hc-hero-glow absolute -top-32 -left-20 w-80 h-80 rounded-full blur-3xl opacity-25"
+                    :style="{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)' }" />
+                <div class="hc-hero-glow hc-hero-glow--slow absolute -bottom-24 -right-16 w-72 h-72 rounded-full blur-3xl opacity-20"
+                    :style="{ background: 'radial-gradient(circle, #8b5cf6, transparent 70%)' }" />
+            </div>
+            <div class="relative max-w-[1200px] mx-auto px-4 sm:px-6 pt-8 pb-10 sm:pb-12">
+                <Breadcrumb class="hc-hero-in hc-hero-in--1 mb-5" :items="[{ label: 'Home', href: '/' }, { label: t('ext.faq.title') }]" />
+                <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                    <div class="max-w-xl">
+                        <div class="hc-hero-in hc-hero-in--1 inline-flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-full text-[11px] font-bold" :class="dark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'">
+                            <CircleHelp :size="12" :stroke-width="2.2" />
+                            {{ t('ext.faq.eyebrow') }}
+                        </div>
+                        <h1 class="hc-hero-in hc-hero-in--2 text-3xl sm:text-4xl font-black tracking-tight mb-2.5" :class="textPri">{{ t('ext.faq.title') }}</h1>
+                        <p class="hc-hero-in hc-hero-in--3 text-[15px] leading-relaxed" :class="textMute">{{ t('ext.faq.subtitle_count', { count: totalCount }) }}</p>
+                    </div>
+
+                    <div class="hc-hero-in hc-hero-in--3 relative w-full lg:w-80 shrink-0">
+                        <label for="faq-search" class="sr-only">{{ t('ext.faq.search_label') }}</label>
+                        <Search :size="15" :stroke-width="2" class="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" :class="textMute" />
+                        <input id="faq-search" v-model="query" type="search" :placeholder="t('ext.faq.search_placeholder')"
+                            class="w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                            :class="[panel, dark ? 'text-zinc-200 placeholder:text-zinc-600' : 'text-zinc-900 placeholder:text-zinc-400']"
+                            @input="openMatches" />
                     </div>
                 </div>
-
-                <div role="search" class="mt-5 relative max-w-md">
-                    <label for="faq-search" class="sr-only">{{ t('ext.faq.search_label') }}</label>
-                    <Search :size="15" :stroke-width="2" class="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" :class="textMute" />
-                    <input id="faq-search" v-model="query" type="search" :placeholder="t('ext.faq.search_placeholder')"
-                        class="w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-                        :class="[panel, dark ? 'text-zinc-200 placeholder:text-zinc-600' : 'text-zinc-900 placeholder:text-zinc-400']"
-                        @input="openMatches" />
-                </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Category jump nav — sticky, horizontally scrollable on mobile -->
-        <nav v-if="!query && groups.length > 1" aria-label="FAQ categories" class="sticky top-0 z-20 border-b backdrop-blur-sm" :class="navBg">
+        <!-- Category jump nav — mobile only, horizontally scrollable. Desktop uses the sidebar below. -->
+        <nav v-if="!query && groups.length > 1" aria-label="FAQ categories" class="lg:hidden sticky top-16 z-20 border-b backdrop-blur-sm" :class="navBg">
             <div class="max-w-[1200px] mx-auto px-4 sm:px-6 flex gap-2 py-2.5 overflow-x-auto">
                 <a v-for="g in groups" :key="g.slug" :href="`#cat-${g.slug}`"
                     class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
@@ -199,83 +219,105 @@ onUnmounted(() => {
         </nav>
 
         <div class="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
-            <!-- Popular — surfaces the same "most helpful" ranking as the homepage widget -->
-            <section v-if="popular.length && !query" aria-labelledby="popular-heading" class="mb-9">
-                <div class="flex items-center gap-2 mb-1">
-                    <Flame :size="14" :stroke-width="2.2" class="text-amber-400" />
-                    <h2 id="popular-heading" class="text-[13px] font-bold uppercase tracking-wide" :class="textPri">{{ t('ext.faq.popular_title') }}</h2>
-                </div>
-                <p class="text-[12px] mb-3" :class="textMute">{{ t('ext.faq.popular_subtitle') }}</p>
-                <div class="grid sm:grid-cols-3 gap-3">
-                    <a v-for="p in popular" :key="p.id" :href="`#faq-${p.id}`" class="rounded-xl border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-                        :class="[panel, dark ? 'hover:border-zinc-700' : 'hover:border-zinc-300']"
-                        @click.prevent="openAndScroll(p.id)">
-                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" :class="categoryHue(p.category)">{{ p.category }}</span>
-                        <p class="text-[13px] font-semibold mt-2" :class="textPri">{{ p.question }}</p>
-                    </a>
-                </div>
-            </section>
-
-            <div v-if="!totalCount" class="rounded-xl border px-5 py-14 text-center" :class="panel">
-                <CircleHelp :size="24" :stroke-width="1.5" class="mx-auto mb-2" :class="textMute" />
-                <p class="text-[13px]" :class="textMute">{{ t('ext.faq.no_entries') }}</p>
-            </div>
-            <div v-else-if="query && !filteredGroups.length" class="rounded-xl border px-5 py-14 text-center" :class="panel">
-                <Search :size="24" :stroke-width="1.5" class="mx-auto mb-2" :class="textMute" />
-                <p class="text-[13px]" :class="textMute">{{ t('ext.faq.no_results') }}</p>
-            </div>
-
-            <section v-for="group in visibleGroups" :key="group.slug" :id="`cat-${group.slug}`" :data-slug="group.slug" data-faq-section
-                :aria-labelledby="`cat-${group.slug}-h`" class="mb-9 last:mb-0 scroll-mt-16">
-                <h2 :id="`cat-${group.slug}-h`" class="flex items-center gap-2 text-[15px] font-bold mb-3" :class="textPri">
-                    {{ group.category }}
-                    <span class="text-[11px] font-mono font-normal" :class="textMute">{{ group.entries.length }}</span>
-                </h2>
-                <div class="rounded-xl border divide-y overflow-hidden" :class="[panel, dark ? 'divide-zinc-800/50' : 'divide-zinc-100']">
-                    <details v-for="entry in group.entries" :key="entry.id" :id="`faq-${entry.id}`" class="group scroll-mt-16">
-                        <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-5 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-inset"
-                            :class="dark ? 'hover:bg-white/[0.02]' : 'hover:bg-zinc-50'">
-                            <span class="flex-1 text-[14px] font-semibold" :class="textPri">{{ entry.question }}</span>
-                            <ChevronDown :size="16" :stroke-width="2" aria-hidden="true" class="shrink-0 transition-transform group-open:rotate-180" :class="textMute" />
-                        </summary>
-                        <div class="px-5 pb-5">
-                            <div class="text-[13px] leading-relaxed [&_p]:mb-2.5 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_code]:font-mono [&_code]:text-[12px] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded"
-                                :class="dark
-                                    ? 'text-zinc-400 [&_strong]:text-zinc-200 [&_a]:text-blue-400 [&_code]:bg-zinc-900 [&_code]:text-zinc-300'
-                                    : 'text-zinc-600 [&_strong]:text-zinc-900 [&_a]:text-blue-600 [&_code]:bg-zinc-100 [&_code]:text-zinc-700'"
-                                v-html="entry.answer_html" />
-
-                            <div class="flex items-center gap-4 mt-4 pt-4 border-t flex-wrap" :class="dark ? 'border-zinc-800/50' : 'border-zinc-100'">
-                                <div class="flex items-center gap-3">
-                                    <span v-if="voted.has(entry.id)" class="flex items-center gap-1.5 text-[12px] text-emerald-400">
-                                        <Check :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_thanks') }}
-                                    </span>
-                                    <template v-else>
-                                        <span class="text-[12px]" :class="textMute">{{ t('ext.faq.feedback_question') }}</span>
-                                        <button type="button" class="flex items-center gap-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
-                                            :class="dark ? 'text-zinc-400 hover:text-emerald-400' : 'text-zinc-500 hover:text-emerald-600'"
-                                            @click="vote(entry, true)">
-                                            <ThumbsUp :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_yes') }}
-                                        </button>
-                                        <button type="button" class="flex items-center gap-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
-                                            :class="dark ? 'text-zinc-400 hover:text-red-400' : 'text-zinc-500 hover:text-red-500'"
-                                            @click="vote(entry, false)">
-                                            <ThumbsDown :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_no') }}
-                                        </button>
-                                    </template>
-                                </div>
-                                <button type="button" class="ml-auto flex items-center gap-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
-                                    :class="dark ? 'text-zinc-600 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'"
-                                    @click="copyLink(entry.id)">
-                                    <Check v-if="copiedId === entry.id" :size="12" :stroke-width="2" class="text-emerald-400" />
-                                    <Link2 v-else :size="12" :stroke-width="2" />
-                                    {{ copiedId === entry.id ? t('ext.faq.link_copied') : t('ext.faq.copy_link') }}
-                                </button>
-                            </div>
+            <div class="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8 lg:items-start">
+                <!-- Category sidebar — desktop only, sticky under the site header -->
+                <aside v-if="groups.length > 1" class="hidden lg:block">
+                    <nav aria-label="FAQ categories" class="hc-reveal sticky top-20 rounded-xl border p-2" :class="panel">
+                        <p class="px-2.5 pt-1.5 pb-2 text-[11px] font-bold uppercase tracking-wide" :class="textMute">{{ t('ext.faq.categories_title') }}</p>
+                        <div class="space-y-0.5">
+                            <a v-for="g in groups" :key="g.slug" :href="`#cat-${g.slug}`"
+                                class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                                :class="activeSlug === g.slug
+                                    ? (dark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-600')
+                                    : (dark ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100')">
+                                <span class="truncate">{{ g.category }}</span>
+                                <span class="text-[11px] font-mono opacity-60 shrink-0">{{ g.entries.length }}</span>
+                            </a>
                         </div>
-                    </details>
+                    </nav>
+                </aside>
+
+                <!-- FAQ content -->
+                <div class="min-w-0">
+                    <!-- Popular — surfaces the same "most helpful" ranking as the homepage widget -->
+                    <section v-if="popular.length && !query" aria-labelledby="popular-heading" class="mb-9">
+                        <div class="flex items-center gap-2 mb-1">
+                            <Flame :size="14" :stroke-width="2.2" class="text-amber-400" />
+                            <h2 id="popular-heading" class="text-[13px] font-bold uppercase tracking-wide" :class="textPri">{{ t('ext.faq.popular_title') }}</h2>
+                        </div>
+                        <p class="text-[12px] mb-3" :class="textMute">{{ t('ext.faq.popular_subtitle') }}</p>
+                        <div class="grid sm:grid-cols-3 gap-3">
+                            <a v-for="p in popular" :key="p.id" :href="`#faq-${p.slug}`" class="rounded-xl border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                                :class="[panel, dark ? 'hover:border-zinc-700' : 'hover:border-zinc-300']"
+                                @click.prevent="openAndScroll(p.slug)">
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" :class="categoryHue(p.category)">{{ p.category }}</span>
+                                <p class="text-[13px] font-semibold mt-2" :class="textPri">{{ p.question }}</p>
+                            </a>
+                        </div>
+                    </section>
+
+                    <div v-if="!totalCount" class="rounded-xl border px-5 py-14 text-center" :class="panel">
+                        <CircleHelp :size="24" :stroke-width="1.5" class="mx-auto mb-2" :class="textMute" />
+                        <p class="text-[13px]" :class="textMute">{{ t('ext.faq.no_entries') }}</p>
+                    </div>
+                    <div v-else-if="query && !filteredGroups.length" class="rounded-xl border px-5 py-14 text-center" :class="panel">
+                        <Search :size="24" :stroke-width="1.5" class="mx-auto mb-2" :class="textMute" />
+                        <p class="text-[13px]" :class="textMute">{{ t('ext.faq.no_results') }}</p>
+                    </div>
+
+                    <section v-for="group in visibleGroups" :key="group.slug" :id="`cat-${group.slug}`" :data-slug="group.slug" data-faq-section
+                        :aria-labelledby="`cat-${group.slug}-h`" class="mb-9 last:mb-0 scroll-mt-24">
+                        <h2 :id="`cat-${group.slug}-h`" class="flex items-center gap-2 text-[15px] font-bold mb-3" :class="textPri">
+                            {{ group.category }}
+                            <span class="text-[11px] font-mono font-normal" :class="textMute">{{ group.entries.length }}</span>
+                        </h2>
+                        <div class="rounded-xl border divide-y overflow-hidden" :class="[panel, dark ? 'divide-zinc-800/50' : 'divide-zinc-100']">
+                            <details v-for="entry in group.entries" :key="entry.id" :id="`faq-${entry.slug}`" class="group scroll-mt-24">
+                                <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-5 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-inset"
+                                    :class="dark ? 'hover:bg-white/[0.02]' : 'hover:bg-zinc-50'">
+                                    <span class="flex-1 text-[14px] font-semibold" :class="textPri">{{ entry.question }}</span>
+                                    <ChevronDown :size="16" :stroke-width="2" aria-hidden="true" class="shrink-0 transition-transform group-open:rotate-180" :class="textMute" />
+                                </summary>
+                                <div class="px-5 pb-5">
+                                    <div class="text-[13px] leading-relaxed [&_p]:mb-2.5 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_code]:font-mono [&_code]:text-[12px] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded"
+                                        :class="dark
+                                            ? 'text-zinc-400 [&_strong]:text-zinc-200 [&_a]:text-blue-400 [&_code]:bg-zinc-900 [&_code]:text-zinc-300'
+                                            : 'text-zinc-600 [&_strong]:text-zinc-900 [&_a]:text-blue-600 [&_code]:bg-zinc-100 [&_code]:text-zinc-700'"
+                                        v-html="entry.answer_html" />
+
+                                    <div class="flex items-center gap-4 mt-4 pt-4 border-t flex-wrap" :class="dark ? 'border-zinc-800/50' : 'border-zinc-100'">
+                                        <div class="flex items-center gap-3">
+                                            <span v-if="voted.has(entry.id)" class="flex items-center gap-1.5 text-[12px] text-emerald-400">
+                                                <Check :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_thanks') }}
+                                            </span>
+                                            <template v-else>
+                                                <span class="text-[12px]" :class="textMute">{{ t('ext.faq.feedback_question') }}</span>
+                                                <button type="button" class="flex items-center gap-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
+                                                    :class="dark ? 'text-zinc-400 hover:text-emerald-400' : 'text-zinc-500 hover:text-emerald-600'"
+                                                    @click="vote(entry, true)">
+                                                    <ThumbsUp :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_yes') }}
+                                                </button>
+                                                <button type="button" class="flex items-center gap-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
+                                                    :class="dark ? 'text-zinc-400 hover:text-red-400' : 'text-zinc-500 hover:text-red-500'"
+                                                    @click="vote(entry, false)">
+                                                    <ThumbsDown :size="13" :stroke-width="2" /> {{ t('ext.faq.feedback_no') }}
+                                                </button>
+                                            </template>
+                                        </div>
+                                        <button type="button" class="ml-auto flex items-center gap-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded"
+                                            :class="dark ? 'text-zinc-600 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'"
+                                            @click="copyLink(entry)">
+                                            <Check v-if="copiedId === entry.id" :size="12" :stroke-width="2" class="text-emerald-400" />
+                                            <Link2 v-else :size="12" :stroke-width="2" />
+                                            {{ copiedId === entry.id ? t('ext.faq.link_copied') : t('ext.faq.copy_link') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </section>
                 </div>
-            </section>
+            </div>
         </div>
     </PublicLayout>
 </template>

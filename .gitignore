@@ -1,0 +1,16 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Build artifacts
+*.zip
+
+# Environment / local
+.env
+.phpunit.result.cache
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

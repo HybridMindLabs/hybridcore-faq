@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { CircleHelp, Plus, Pencil, Trash2, X, ThumbsUp, ThumbsDown, Search, Link2 } from '@lucide/vue';
+import { CircleHelp, Plus, Pencil, Trash2, X, ThumbsUp, ThumbsDown, Search, Link2, Eye, EyeOff } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import PageHeader from '@/components/UI/PageHeader.vue';
@@ -74,6 +74,26 @@ function destroy(e: Entry) {
     router.delete(route('admin.faq.destroy', e.id), { preserveScroll: true });
 }
 
+// ── Bulk selection ──────────────────────────────────────────────
+const selected = ref<Set<number>>(new Set());
+
+function toggleSelected(id: number) {
+    const next = new Set(selected.value);
+    next.has(id) ? next.delete(id) : next.add(id);
+    selected.value = next;
+}
+function clearSelection() {
+    selected.value = new Set();
+}
+function bulk(action: 'publish' | 'unpublish' | 'delete') {
+    if (action === 'delete' && !confirm(t('ext.faq.bulk_confirm_delete', { count: selected.value.size }))) return;
+
+    router.post(route('admin.faq.bulk'), { action, ids: [...selected.value] }, {
+        preserveScroll: true,
+        onSuccess: clearSelection,
+    });
+}
+
 const input = 'w-full bg-zinc-900/60 border border-zinc-800/70 text-zinc-100 rounded-lg px-3 py-2 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20';
 const label = 'text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1.5 block';
 </script>
@@ -88,9 +108,27 @@ const label = 'text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1
             </button>
         </div>
 
-        <div v-if="groups.length" class="relative mb-4 max-w-sm">
-            <Search :size="14" :stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" />
-            <input v-model="filter" type="search" :placeholder="t('ext.faq.filter_placeholder')" class="w-full pl-9 pr-3 py-2 rounded-lg bg-[#111113] border border-zinc-800/70 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20" />
+        <div v-if="groups.length" class="flex items-center gap-3 mb-4 flex-wrap">
+            <div class="relative max-w-sm flex-1 min-w-[200px]">
+                <Search :size="14" :stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" />
+                <input v-model="filter" type="search" :placeholder="t('ext.faq.filter_placeholder')" class="w-full pl-9 pr-3 py-2 rounded-lg bg-[#111113] border border-zinc-800/70 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20" />
+            </div>
+
+            <div v-if="selected.size" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <span class="text-[12px] font-bold text-blue-400">{{ t('ext.faq.selected_count', { count: selected.size }) }}</span>
+                <button type="button" class="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-emerald-400 transition-colors" @click="bulk('publish')">
+                    <Eye :size="12" :stroke-width="2" /> {{ t('ext.faq.bulk_publish') }}
+                </button>
+                <button type="button" class="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-amber-400 transition-colors" @click="bulk('unpublish')">
+                    <EyeOff :size="12" :stroke-width="2" /> {{ t('ext.faq.bulk_unpublish') }}
+                </button>
+                <button type="button" class="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-red-400 transition-colors" @click="bulk('delete')">
+                    <Trash2 :size="12" :stroke-width="2" /> {{ t('ext.faq.bulk_delete') }}
+                </button>
+                <button type="button" class="text-zinc-600 hover:text-zinc-300 ml-1" @click="clearSelection">
+                    <X :size="14" :stroke-width="2" />
+                </button>
+            </div>
         </div>
 
         <div v-if="!groups.length" class="bg-[#111113] border border-zinc-800/70 rounded-xl px-5 py-12 text-center">
@@ -109,6 +147,7 @@ const label = 'text-zinc-400 text-[11px] font-bold uppercase tracking-wider mb-1
             </div>
             <div class="bg-[#111113] border border-zinc-800/70 rounded-xl overflow-hidden">
                 <div v-for="e in group.entries" :key="e.id" class="px-5 py-3.5 border-b border-zinc-800/50 last:border-0 flex items-center gap-4">
+                    <input type="checkbox" :checked="selected.has(e.id)" class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 accent-blue-500 shrink-0" @change="toggleSelected(e.id)" />
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
                             <p class="text-[14px] font-bold text-zinc-100 truncate">{{ e.question }}</p>

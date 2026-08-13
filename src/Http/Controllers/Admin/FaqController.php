@@ -61,6 +61,25 @@ class FaqController extends Controller
         return back()->with('success', trans('faq::messages.deleted'));
     }
 
+    public function bulk(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'action' => ['required', 'string', Rule::in(['publish', 'unpublish', 'delete'])],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:faq_entries,id'],
+        ]);
+
+        $entries = FaqEntry::whereIn('id', $data['ids']);
+
+        match ($data['action']) {
+            'publish' => $entries->update(['is_published' => true]),
+            'unpublish' => $entries->update(['is_published' => false]),
+            'delete' => $entries->delete(),
+        };
+
+        return back()->with('success', trans('faq::messages.bulk_done', ['count' => count($data['ids'])]));
+    }
+
     /** @return array<string, mixed> */
     private function validated(Request $request, ?FaqEntry $entry = null): array
     {

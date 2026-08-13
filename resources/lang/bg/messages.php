@@ -51,4 +51,10 @@ return [
     'created' => 'Въпросът е създаден.',
     'updated' => 'Въпросът е обновен.',
     'deleted' => 'Въпросът е изтрит.',
+    'bulk_done' => ':count въпрос(а) обновени.',
+    'bulk_publish' => 'Публикувай',
+    'bulk_unpublish' => 'Скрий',
+    'bulk_delete' => 'Изтрий',
+    'bulk_confirm_delete' => 'Изтрий :count въпрос(а)? Не може да се отмени.',
+    'selected_count' => ':count избрани',
 ];

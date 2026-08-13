@@ -3,7 +3,6 @@
 namespace Hybridcore\Faq\Tests\Feature;
 
 use App\Services\Extensions\ExtensionAutoloader;
-use App\Support\MarkdownRenderer;
 use Hybridcore\Faq\FaqServiceProvider;
 use Hybridcore\Faq\Http\Controllers\Web\FaqController;
 use Hybridcore\Faq\Models\FaqEntry;
@@ -57,7 +56,7 @@ class FaqTest extends TestCase
         // extensions register before the catch-all in normal boot order —
         // see the "keep LAST" comment on that route in routes/web.php.
         request()->headers->set('X-Inertia', 'true');
-        $response = app(FaqController::class)->index(app(MarkdownRenderer::class));
+        $response = app(FaqController::class)->index();
         $groups = $response->toResponse(request())->getData(true)['props']['groups'];
 
         $this->assertCount(2, $groups);
@@ -75,7 +74,7 @@ class FaqTest extends TestCase
         FaqEntry::create(['question' => 'Draft question', 'answer' => 'A', 'is_published' => false]);
 
         request()->headers->set('X-Inertia', 'true');
-        $response = app(FaqController::class)->index(app(MarkdownRenderer::class));
+        $response = app(FaqController::class)->index();
         $groups = $response->toResponse(request())->getData(true)['props']['groups'];
 
         $questions = collect($groups)->flatMap(fn ($g) => $g['entries'])->pluck('question');
@@ -90,7 +89,7 @@ class FaqTest extends TestCase
         FaqEntry::create(['question' => 'Never voted', 'answer' => 'A']);
 
         request()->headers->set('X-Inertia', 'true');
-        $response = app(FaqController::class)->index(app(MarkdownRenderer::class));
+        $response = app(FaqController::class)->index();
         $data = $response->toResponse(request())->getData(true)['props'];
 
         $this->assertCount(1, $data['popular']);

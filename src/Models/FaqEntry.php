@@ -2,6 +2,7 @@
 
 namespace Hybridcore\Faq\Models;
 
+use App\Support\MarkdownRenderer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -12,6 +13,7 @@ use Illuminate\Support\Str;
  * @property string $question
  * @property string $slug
  * @property string $answer
+ * @property string $answer_html
  * @property bool $is_published
  * @property int $sort
  * @property int $helpful_count
@@ -39,6 +41,14 @@ class FaqEntry extends Model
         static::creating(function (FaqEntry $entry) {
             if (blank($entry->slug)) {
                 $entry->slug = static::uniqueSlug($entry->question);
+            }
+        });
+
+        // Rendered once here instead of on every public-page request — the
+        // answer only changes on save, not on every visitor.
+        static::saving(function (FaqEntry $entry) {
+            if ($entry->isDirty('answer') || blank($entry->answer_html)) {
+                $entry->answer_html = app(MarkdownRenderer::class)->toHtml($entry->answer);
             }
         });
     }

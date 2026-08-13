@@ -3,7 +3,6 @@
 namespace Hybridcore\Faq\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Support\MarkdownRenderer;
 use Hybridcore\Faq\Models\FaqEntry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +13,7 @@ use Inertia\Response;
 
 class FaqController extends Controller
 {
-    public function index(MarkdownRenderer $markdown): Response
+    public function index(): Response
     {
         $published = FaqEntry::where('is_published', true)
             ->orderBy('category')
@@ -22,18 +21,16 @@ class FaqController extends Controller
             ->orderBy('id')
             ->get();
 
-        $render = function (FaqEntry $e) use ($markdown) {
-            $html = $markdown->toHtml($e->answer);
-
-            return [
-                'id' => $e->id,
-                'slug' => $e->slug,
-                'category' => $e->category ?: trans('faq::messages.uncategorized'),
-                'question' => $e->question,
-                'answer_html' => $html,
-                'answer_text' => trim(preg_replace('/\s+/', ' ', strip_tags($html))),
-            ];
-        };
+        // answer_html is rendered once, on save (FaqEntry::booted()) — not
+        // re-parsed from markdown on every visitor's page load.
+        $render = fn (FaqEntry $e) => [
+            'id' => $e->id,
+            'slug' => $e->slug,
+            'category' => $e->category ?: trans('faq::messages.uncategorized'),
+            'question' => $e->question,
+            'answer_html' => $e->answer_html,
+            'answer_text' => trim(preg_replace('/\s+/', ' ', strip_tags($e->answer_html))),
+        ];
 
         $rendered = $published->map($render);
 

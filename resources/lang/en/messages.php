@@ -51,4 +51,10 @@ return [
     'created' => 'Question created.',
     'updated' => 'Question updated.',
     'deleted' => 'Question deleted.',
+    'bulk_done' => ':count question(s) updated.',
+    'bulk_publish' => 'Publish',
+    'bulk_unpublish' => 'Unpublish',
+    'bulk_delete' => 'Delete',
+    'bulk_confirm_delete' => 'Delete :count question(s)? This cannot be undone.',
+    'selected_count' => ':count selected',
 ];

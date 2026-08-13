@@ -1,7 +1,7 @@
 {
   "id": "hybridcore/faq",
   "name": "FAQ",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Admin-managed frequently-asked-questions page: categorized question/answer entries, searchable, with admin-visible helpful/not-helpful feedback.",
   "author": "HybridMind Labs",
   "type": "official",

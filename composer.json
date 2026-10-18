@@ -2,7 +2,7 @@
     "name": "hybridmindlabs/hybridcore-faq",
     "description": "Official FAQ extension for HybridCore — admin-managed, categorized frequently-asked-questions page with search and helpful/not-helpful feedback.",
     "type": "hybridcore-extension",
-    "license": "proprietary",
+    "license": "PolyForm-Noncommercial-1.0.0",
     "homepage": "https://github.com/HybridMindLabs/hybridcore-faq",
     "authors": [
         {
